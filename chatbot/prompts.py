@@ -22,6 +22,8 @@ intent_class = [
       "content": """
         As an expert intent categorizer, analyze the following user input and classify whether it requires data-related inquiry or general inquiry.
         The answer should be either 'data-related inquiry' or 'requires general inquiry'.
+        <For the user's queries, treat phrases that imply a request for information or demonstration, such as 'I want', 'show me', 'display', 'illustrate', 'get me' and 'demonstrate' as equivalent to this answer 'data-related inquiry'.>
+
         
         Example: show the anomalies
         Answer: data-related inquiry
