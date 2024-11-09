@@ -10,19 +10,9 @@
         "example": "More than 5 transactions in a minute or 50 in an hour."
     },
     {
-        "parameter": "Location Consistency",
-        "description": "Flag transactions originating from locations inconsistent with the user’s typical behavior.",
-        "example": "Sudden transactions from a foreign country."
-    },
-    {
         "parameter": "IP Address Consistency",
         "description": "Monitor the IP addresses associated with user activity to identify changes.",
         "example": "Transactions made from a new or suspicious IP address."
-    },
-    {
-        "parameter": "Device Consistency",
-        "description": "Track device IDs used in transactions to detect unusual device activity.",
-        "example": "Transaction from an unrecognized or new device."
     },
     {
         "parameter": "Transaction Time Patterns",
@@ -35,28 +25,8 @@
         "example": "A user who usually transacts in USD suddenly switching to a foreign currency."
     },
     {
-        "parameter": "Rapid Buy and Sell Behavior",
-        "description": "Detect frequent buying and selling within short timeframes, which can indicate potential manipulation or account misuse.",
-        "example": "Multiple buy and sell actions on the same security within minutes."
-    },
-    {
-        "parameter": "High-Risk Location Indicator",
-        "description": "Flag transactions originating from locations known for high fraud risk.",
-        "example": "Flagged IPs or high-risk countries based on internal or external data sources."
-    },
-    {
-        "parameter": "High-Risk Trade Type",
-        "description": "Monitor specific types of trades or securities that are more susceptible to fraud.",
-        "example": "Penny stocks or volatile instruments that are commonly used for market manipulation."
-    },
-    {
         "parameter": "Account Age and Activity Level",
         "description": "Adjust flags based on the age of the account and recent activity.",
         "example": "A new account performing a high-value transaction could be flagged."
-    },
-    {
-        "parameter": "User Profile Consistency",
-        "description": "Compare trading behavior against the user’s profile, such as income or occupation, to detect outliers.",
-        "example": "A low-income user executing transactions in large amounts."
     }
 ]

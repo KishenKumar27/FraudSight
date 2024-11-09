@@ -1,7 +1,6 @@
-from sqlalchemy import create_engine, Column, Integer, String, Float, ForeignKey, DateTime, UniqueConstraint
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import relationship, sessionmaker
-from datetime import datetime
+from sqlalchemy import create_engine, Column, Integer, String, Float, ForeignKey, DateTime
+from sqlalchemy.orm import relationship, sessionmaker, declarative_base
+from datetime import datetime, timedelta
 from faker import Faker
 import random
 
@@ -23,7 +22,7 @@ class User(Base):
     occupation = Column(String(100), nullable=True)
     status = Column(String(20), nullable=True)
     income = Column(Float, nullable=True)
-    phone_number = Column(String(20), nullable=False)
+    phone_number = Column(String(30), nullable=False)
     account_creation_date = Column(DateTime, default=datetime.utcnow)
 
     # Establish relationship with TradingTransaction
@@ -66,20 +65,28 @@ session = Session()
 # Create instance of Faker for dummy data generation
 fake = Faker()
 
-# Function to generate dummy users and transactions
-def generate_dummy_data(num_users=5, transactions_per_user=3):
+# Function to generate dummy users and transactions with varied hours for today's date
+def generate_dummy_data(num_users=1000, transactions_per_user=500):
     users = []
+    generated_emails = set()  # Track generated emails to avoid duplicates
+
     for _ in range(num_users):
+        # Ensure unique email
+        email = fake.email()
+        while email in generated_emails:
+            email = fake.email()
+        generated_emails.add(email)
+
         user = User(
             name=fake.name(),
-            email=fake.email(),
+            email=email,
             age=random.randint(18, 80),
             gender=random.choice(['Male', 'Female']),
             country_of_residence=fake.country(),
             occupation=fake.job(),
             status=random.choice(['Single', 'Married']),
             income=round(random.uniform(30000, 150000), 2),
-            phone_number=fake.phone_number(),
+            phone_number=fake.numerify("##########"),  # Limit to 10 digits
             account_creation_date=fake.date_time_this_decade()
         )
         session.add(user)
@@ -87,13 +94,18 @@ def generate_dummy_data(num_users=5, transactions_per_user=3):
 
         # Create dummy transactions for each user
         for _ in range(transactions_per_user):
+            time_offset = timedelta(
+                hours=random.randint(0, 23),
+                minutes=random.randint(0, 59),
+                seconds=random.randint(0, 59)
+            )
             transaction = TradingTransaction(
                 transaction_id=fake.uuid4(),
                 user_id=user.user_id,
                 transaction_type=random.choice(['buy', 'sell']),
                 amount=round(random.uniform(100.0, 10000.0), 2),
                 currency=random.choice(['USD', 'EUR', 'GBP', 'JPY']),
-                transaction_time=fake.date_time_this_year(),
+                transaction_time=datetime.utcnow() + time_offset,
                 location=fake.city(),
                 device_id=fake.uuid4(),
                 ip_address=fake.ipv4()

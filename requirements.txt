@@ -8,3 +8,4 @@ faker
 pymysql
 mysql-connector-python
 openai
+google-generativeai
