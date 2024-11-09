@@ -135,19 +135,20 @@ Fraud Parameters:
 The user intent is: "{user_intent}"
 
 Requirements:
-- Use only SELECT statements (no INSERT, UPDATE, DELETE, etc.)
-- Include proper JOIN conditions when combining tables (e.g., JOIN users and trading_transactions)
-- Use appropriate WHERE clauses for filtering, including fraud detection based on the parameters provided
-- Ensure correct date manipulation using NOW() or DATE_SUB() (e.g., t.transaction_time >= DATE_SUB(NOW(), INTERVAL 24 HOUR))
-- Use standard SQL functions for date formatting (e.g., DATE_FORMAT for date-time fields)
-- Include clear column aliases for readability
-- Optimize for performance with appropriate indexing columns
-- Handle NULL values appropriately
+- Use only SELECT statements (no INSERT, UPDATE, DELETE, etc.).
+- Include proper JOIN conditions when combining tables (e.g., JOIN users and trading_transactions).
+- Use appropriate WHERE clauses for filtering, including fraud detection based on the parameters provided.
+- Ensure correct date manipulation using NOW() or DATE_SUB() (e.g., t.transaction_time >= DATE_SUB(NOW(), INTERVAL 24 HOUR)).
+- Use standard SQL functions for date formatting (e.g., DATE_FORMAT for date-time fields).
+- Include clear column aliases for readability.
+- Optimize for performance with appropriate indexing columns.
+- Handle NULL values appropriately.
 - Include two new computed columns in the generated SQL query:
-    1. `flag_reason`: A string column explaining why the transaction is flagged (based on the fraud parameters)
-    2. `is_fraud`: A mandatory boolean column indicating whether the transaction is flagged as fraudulent (1 for fraud, 0 for no fraud)
+    1. `flag_reason`: A string column explaining why the transaction is flagged (based on the fraud parameters).
+    2. `is_fraud`: A mandatory boolean column indicating whether the transaction is flagged as fraudulent (1 for fraud, 0 for no fraud).
 - Add the `flag_reason` and `is_fraud` columns, which are not present in any table, and compute their values based on the data.
 - Return only the SQL query without any explanations. Generate a complete SQL query, including the necessary logic for fraud detection based on the parameters listed above. Ensure that the `is_fraud` column is explicitly included as a mandatory part of the query.
+- Only include the columns specified in the given database tables and their schemas.
 
 SQL native Function
 

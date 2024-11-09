@@ -13,62 +13,26 @@
     },
     {
         "id": 3,
-        "parameter": "Location Consistency",
-        "description": "Flag transactions originating from locations inconsistent with the user\u2019s typical behavior.",
-        "example": "Sudden transactions from a foreign country."
-    },
-    {
-        "id": 4,
         "parameter": "IP Address Consistency",
         "description": "Monitor the IP addresses associated with user activity to identify changes.",
         "example": "Transactions made from a new or suspicious IP address."
     },
     {
-        "id": 5,
-        "parameter": "Device Consistency",
-        "description": "Track device IDs used in transactions to detect unusual device activity.",
-        "example": "Transaction from an unrecognized or new device."
-    },
-    {
-        "id": 6,
+        "id": 4,
         "parameter": "Transaction Time Patterns",
         "description": "Identify transactions that occur at unusual hours based on the user\u2019s behavior.",
         "example": "Transactions made during late-night hours if the user is usually active during the day."
     },
     {
-        "id": 7,
+        "id": 5,
         "parameter": "Unusual Currency Patterns",
         "description": "Monitor the currency types used for transactions if the user typically trades in a specific currency.",
         "example": "A user who usually transacts in USD suddenly switching to a foreign currency."
     },
     {
-        "id": 8,
-        "parameter": "Rapid Buy and Sell Behavior test",
-        "description": "Detect frequent buying and selling within short timeframes, which can indicate potential manipulation or account misuse.",
-        "example": "Multiple buy and sell actions on the same security within minutes."
-    },
-    {
-        "id": 9,
-        "parameter": "High-Risk Location Indicator",
-        "description": "Flag transactions originating from locations known for high fraud risk.",
-        "example": "Flagged IPs or high-risk countries based on internal or external data sources."
-    },
-    {
-        "id": 10,
-        "parameter": "High-Risk Trade Type",
-        "description": "Monitor specific types of trades or securities that are more susceptible to fraud.",
-        "example": "Penny stocks or volatile instruments that are commonly used for market manipulation."
-    },
-    {
-        "id": 11,
+        "id": 6,
         "parameter": "Account Age and Activity Level",
         "description": "Adjust flags based on the age of the account and recent activity.",
         "example": "A new account performing a high-value transaction could be flagged."
-    },
-    {
-        "id": 12,
-        "parameter": "User Profile Consistency",
-        "description": "Compare trading behavior against the user\u2019s profile, such as income or occupation, to detect outliers.",
-        "example": "A low-income user executing transactions in large amounts."
     }
 ]
