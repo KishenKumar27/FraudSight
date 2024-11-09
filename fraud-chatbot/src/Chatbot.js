@@ -21,6 +21,7 @@ const Chatbot = () => {
     setChatHistory([...chatHistory, { user: message }]);
     setMessage('');
     setIsLoading(true);
+    setCurrentPage(1);  // Reset to the first page when a new query is sent
 
     try {
       // Send the message to the FastAPI chatbot endpoint
@@ -33,22 +34,19 @@ const Chatbot = () => {
         { assistant: assistantResponse },
       ]);
 
-
-      // Call the appropriate query endpoint based on isChartGenerated
+      // Handle dataframe or text query
       if (isChartGenerated === 'yes') {
         const dataframeResponse = await axios.post('http://localhost:8000/query/dataframe', {
           query: intent,
         });
 
         if (dataframeResponse.data && Array.isArray(dataframeResponse.data.results.data) && dataframeResponse.data.results.data.length > 0) {
-          // Pagination logic
           const totalItems = dataframeResponse.data.results.data.length;
           setTotalPages(Math.ceil(totalItems / itemsPerPage));
 
           const startIndex = (currentPage - 1) * itemsPerPage;
           const currentPageData = dataframeResponse.data.results.data.slice(startIndex, startIndex + itemsPerPage);
 
-          // Convert the dataframe response to table format
           const dataframeTable = (
             <div>
               <table style={styles.table}>
@@ -152,17 +150,24 @@ const Chatbot = () => {
 
 const styles = {
   chatContainer: {
-    width: '400px',
+    width: '100%',
+    maxWidth: '800px',  // Increased width of the chat container
     margin: '0 auto',
     padding: '20px',
     backgroundColor: '#f9f9f9',
     borderRadius: '10px',
     boxShadow: '0 4px 10px rgba(0, 0, 0, 0.1)',
+    display: 'flex',
+    flexDirection: 'column',
+    justifyContent: 'space-between',
+    height: '80vh',  // Keep the container height adjustable
   },
   chatBox: {
-    maxHeight: '400px',
+    flexGrow: 1,
+    maxHeight: '60vh',  // Limit the chat history height to avoid overflow
     overflowY: 'auto',
     marginBottom: '20px',
+    paddingRight: '10px',
   },
   messageContainer: {
     marginBottom: '10px',
@@ -172,34 +177,40 @@ const styles = {
     padding: '10px',
     borderRadius: '10px',
     textAlign: 'left',
+    wordBreak: 'break-word',  // Avoid text overflow
   },
   assistantMessage: {
     backgroundColor: '#e8f4e8',
     padding: '10px',
     borderRadius: '10px',
     textAlign: 'left',
+    wordBreak: 'break-word',  // Avoid text overflow
   },
   dataframeMessage: {
     backgroundColor: '#f1f1f1',
     padding: '10px',
     borderRadius: '10px',
     fontSize: '0.85rem',
+    overflowX: 'auto',  // Allow horizontal scroll for wide tables
   },
   textMessage: {
     backgroundColor: '#fff3cd',
     padding: '10px',
     borderRadius: '10px',
     fontSize: '0.85rem',
+    wordBreak: 'break-word',  // Avoid text overflow
   },
   errorMessage: {
     backgroundColor: '#f8d7da',
     padding: '10px',
     borderRadius: '10px',
     color: '#721c24',
+    wordBreak: 'break-word',  // Avoid text overflow
   },
   inputContainer: {
     display: 'flex',
     alignItems: 'center',
+    marginTop: '10px',
   },
   input: {
     width: '80%',
@@ -207,6 +218,7 @@ const styles = {
     marginRight: '10px',
     borderRadius: '5px',
     border: '1px solid #ddd',
+    fontSize: '1rem',
   },
   sendButton: {
     padding: '10px 15px',
@@ -220,6 +232,7 @@ const styles = {
     width: '100%',
     borderCollapse: 'collapse',
     marginTop: '10px',
+    tableLayout: 'auto',  // Automatically adjust column widths
   },
   tableHeader: {
     backgroundColor: '#f2f2f2',
@@ -231,10 +244,12 @@ const styles = {
     padding: '8px',
     textAlign: 'left',
     borderBottom: '1px solid #ddd',
+    wordBreak: 'break-word',  // Avoid overflow in table cells
   },
   pagination: {
     display: 'flex',
     justifyContent: 'center',
+    alignItems: 'center',
     marginTop: '10px',
   },
   paginationButton: {
@@ -247,7 +262,6 @@ const styles = {
     cursor: 'pointer',
   },
   pageNumber: {
-    alignSelf: 'center',
     margin: '0 10px',
   },
 };
