@@ -62,16 +62,9 @@ User.transactions = relationship("TradingTransaction", back_populates="user")
 # Initialize FastAPI app
 app = FastAPI()
 
-# Add CORS middleware
-origins = [
-    "http://localhost:3000",  # Frontend running locally (React default)
-    "http://127.0.0.1:3000",  # Alternative for local development
-    # Add more origins as needed for production or staging
-]
-
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,  # Allows your frontend to make requests to the API
+    allow_origins=["*"],  # Allows your frontend to make requests to the API
     allow_credentials=True,
     allow_methods=["*"],  # Allows all methods (GET, POST, etc.)
     allow_headers=["*"],  # Allows all headers
