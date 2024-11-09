@@ -7,3 +7,4 @@ sqlalchemy
 faker
 pymysql
 mysql-connector-python
+openai
