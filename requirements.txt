@@ -1,0 +1,9 @@
+fastapi
+matplotlib
+pandas
+scikit-learn
+uvicorn
+sqlalchemy
+faker
+pymysql
+mysql-connector-python
