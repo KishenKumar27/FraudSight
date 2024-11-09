@@ -85,22 +85,7 @@ async def chat(request: ChatRequest):
                     
             # Extract and return the assistant's reply
             assistant_message = response.choices[0].message.content
-            
-        if isQueryText == "yes":
-            query_text = prompts.table_inquiry
-            
-            table_inquiry.append({"role": "user", "content": request.message})
-            
-            # Make the request to OpenAI's chat API
-            response = client.chat.completions.create(
-                model="gpt-3.5-turbo",  # You can use gpt-4 if you have access
-                messages=table_inquiry
-            )
-                    
-            # Extract and return the assistant's reply
-            assistant_message = response.choices[0].message.content
-            
-            
+                           
         
         return {"response": assistant_message, "intent": intent, "isChartGenerated": isChartGenerated, "isQueryText": isQueryText}
     except Exception as e:
