@@ -5,6 +5,7 @@ from pydantic import BaseModel
 from openai import OpenAI
 import os
 import prompts
+from intent_classifier import intent_classifier
 
 # Initialize OpenAI client
 client = OpenAI(api_key="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")
@@ -21,13 +22,13 @@ app.add_middleware(
 )
 
 def intent_generator(user_input):
-    intent_clarifier = prompts.intent
+    intent_clarifier = prompts.intent_gen
     
     intent_clarifier.append({"role": "user", "content": user_input})
     
     intent = client.chat.completions.create(
             model="gpt-3.5-turbo",  # You can use gpt-4 if you have access
-            messages=prompts.intent,
+            messages=prompts.intent_gen,
             max_tokens=500
     ).choices[0].message.content
     
@@ -42,26 +43,44 @@ class ChatRequest(BaseModel):
 @app.post("/chat")
 async def chat(request: ChatRequest):
     try:
-        # Create the chat conversation
-        conversation = prompts.general_inquiry
-
-        # Add the user message to the conversation
-        conversation.append({"role": "user", "content": request.message})
-
-
-        # Make the request to OpenAI's chat API
-        response = client.chat.completions.create(
-            model="gpt-3.5-turbo",  # You can use gpt-4 if you have access
-            messages=conversation
-        )
-        
         intent = intent_generator(request.message)
         
-        yes_variable = 'yes'
+        isChartGenerated = intent_classifier(request.message)
+        print(isChartGenerated)
         
-        # Extract and return the assistant's reply
-        assistant_message = response.choices[0].message.content
-        return {"response": assistant_message, "intent": intent, "isChartGenerated": yes_variable}
+        if isChartGenerated == "no":
+            # Create the chat conversation
+            general_inquiry = prompts.general_inquiry
+
+            # Add the user message to the conversation
+            general_inquiry.append({"role": "user", "content": request.message})
+
+
+            # Make the request to OpenAI's chat API
+            response = client.chat.completions.create(
+                model="gpt-3.5-turbo",  # You can use gpt-4 if you have access
+                messages=general_inquiry
+            )
+                    
+            # Extract and return the assistant's reply
+            assistant_message = response.choices[0].message.content
+            
+        else:
+            table_inquiry = prompts.table_inquiry
+            
+            table_inquiry.append({"role": "user", "content": request.message})
+            
+            # Make the request to OpenAI's chat API
+            response = client.chat.completions.create(
+                model="gpt-3.5-turbo",  # You can use gpt-4 if you have access
+                messages=table_inquiry
+            )
+                    
+            # Extract and return the assistant's reply
+            assistant_message = response.choices[0].message.content
+            
+        
+        return {"response": assistant_message, "intent": intent, "isChartGenerated": isChartGenerated}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

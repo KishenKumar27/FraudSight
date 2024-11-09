@@ -40,7 +40,7 @@ fraud_conditions_text = "\n".join([
 ])
 
 # Google Gemini API Configuration
-genai.configure(api_key="AIzaSyCQf6KtXTkjkLriOYkiQUEjqYVwOlzRT6c")
+genai.configure(api_key="AIzaSyC9oIGpFTbnySV3I3Qo_WF_90IjHZDibgI")
 
 # Initialize database engine
 def create_db_engine():
@@ -233,7 +233,7 @@ async def get_dataframe_response(user_intent: UserIntent):
 
 def convert_df_to_response_text_with_gemini(user_intent: str, df: pd.DataFrame) -> str:
     """
-    Use Gemini to convert DataFrame results into a paragraph that answers the user intent.
+    Use Gemini to convert summarized DataFrame results into a paragraph that answers the user intent.
     
     Args:
         user_intent (str): The user's query or intent.
@@ -242,15 +242,15 @@ def convert_df_to_response_text_with_gemini(user_intent: str, df: pd.DataFrame) 
     Returns:
         str: A descriptive text paragraph that answers the user's intent based on the DataFrame data.
     """
-    # Convert DataFrame to JSON for input to Gemini
-    data_json = df.to_json(orient="records", date_format="iso")
+    # Summarize the DataFrame to avoid passing too much data to Gemini
+    summary = df.describe(include='all').to_json(orient="split", date_format="iso")
 
     # Prepare the prompt
     prompt = f"""
-Given the following data as JSON and a user intent, generate a paragraph response that answers the intent in a clear and descriptive manner. 
+Given the following summarized data and a user intent, generate a paragraph response that answers the intent in a clear and descriptive manner. 
 
-Data (in JSON format):
-{data_json}
+Summarized Data (in JSON format):
+{summary}
 
 User Intent:
 "{user_intent}"

@@ -123,6 +123,14 @@ const Chatbot = () => {
     ]);
   }, []);
 
+  // Handle Enter key press to send message
+  const handleKeyPress = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault(); // Prevent default behavior (new line)
+      handleSendMessage();
+    }
+  };
+
   return (
     <div style={styles.chatContainer}>
       <div style={styles.chatBox}>
@@ -143,6 +151,7 @@ const Chatbot = () => {
           onChange={handleMessageChange}
           placeholder="Ask about fraud detection..."
           style={styles.input}
+          onKeyPress={handleKeyPress} // Handle Enter key press
         />
         <button onClick={handleSendMessage} disabled={isLoading} style={styles.sendButton}>
           <span style={styles.arrow}>&#8594;</span>  {/* Arrow symbol */}
@@ -249,7 +258,6 @@ const styles = {
   table: {
     width: '100%',
     borderCollapse: 'collapse',
-    marginTop: '16px',
   },
   tableHeader: {
     backgroundColor: '#00796b',
