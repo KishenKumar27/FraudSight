@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 
 const Chatbot = () => {
@@ -9,6 +9,8 @@ const Chatbot = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(5);  // Number of items per page
   const [totalPages, setTotalPages] = useState(1);  // Total number of pages
+
+  const chatBoxRef = useRef(null);  // Create a reference for the chat box
 
   const handleMessageChange = (e) => {
     setMessage(e.target.value);
@@ -26,12 +28,12 @@ const Chatbot = () => {
       const response = await axios.post('http://localhost:8001/chat', { message });
       const { response: assistantResponse, intent, isChartGenerated, isQueryText } = response.data;
 
-      setChatHistory((prevHistory) => [
-        ...prevHistory,
-        { assistant: assistantResponse },
-      ]);
-
       if (isChartGenerated === 'yes') {
+        setChatHistory((prevHistory) => [
+          ...prevHistory,
+          { assistant: assistantResponse },
+        ]);
+
         const dataframeResponse = await axios.post('http://localhost:8000/query/dataframe', {
           query: intent,
         });
@@ -128,6 +130,13 @@ const Chatbot = () => {
     ]);
   }, []);
 
+  // Scroll to bottom when chatHistory changes
+  useEffect(() => {
+    if (chatBoxRef.current) {
+      chatBoxRef.current.scrollTop = chatBoxRef.current.scrollHeight;
+    }
+  }, [chatHistory]);
+
   // Handle Enter key press to send message
   const handleKeyPress = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -138,7 +147,7 @@ const Chatbot = () => {
 
   return (
     <div style={styles.chatContainer}>
-      <div style={styles.chatBox}>
+      <div ref={chatBoxRef} style={styles.chatBox}>
         {chatHistory.map((entry, index) => (
           <div key={index} style={styles.messageContainer}>
             {entry.user && <div style={styles.userMessage}>{entry.user}</div>}
