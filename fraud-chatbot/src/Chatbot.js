@@ -24,7 +24,7 @@ const Chatbot = () => {
 
     try {
       const response = await axios.post('http://localhost:8001/chat', { message });
-      const { response: assistantResponse, intent, isChartGenerated } = response.data;
+      const { response: assistantResponse, intent, isChartGenerated, isQueryText } = response.data;
 
       setChatHistory((prevHistory) => [
         ...prevHistory,
@@ -95,13 +95,18 @@ const Chatbot = () => {
             { error: 'No valid data returned from the dataframe query.' },
           ]);
         }
-      } else {
+      } else if (isQueryText === 'yes') {
         const textResponse = await axios.post('http://localhost:8000/query/text', {
           query: intent,
         });
         setChatHistory((prevHistory) => [
           ...prevHistory,
           { text: textResponse.data.response },
+        ]);
+      } else {
+        setChatHistory((prevHistory) => [
+          ...prevHistory,
+          { text: assistantResponse },
         ]);
       }
     } catch (error) {
