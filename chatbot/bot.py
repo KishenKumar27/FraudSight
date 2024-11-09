@@ -6,6 +6,7 @@ from openai import OpenAI
 import os
 import prompts
 from intent_classifier import intent_classifier
+from query_classifier import query_classifier
 
 # Initialize OpenAI client
 client = OpenAI(api_key="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")
@@ -48,6 +49,9 @@ async def chat(request: ChatRequest):
         isChartGenerated = intent_classifier(request.message)
         print(isChartGenerated)
         
+        isQueryText = query_classifier(request.message)
+        print(isQueryText)
+        
         if isChartGenerated == "no":
             # Create the chat conversation
             general_inquiry = prompts.general_inquiry
@@ -80,7 +84,7 @@ async def chat(request: ChatRequest):
             assistant_message = response.choices[0].message.content
             
         
-        return {"response": assistant_message, "intent": intent, "isChartGenerated": isChartGenerated}
+        return {"response": assistant_message, "intent": intent, "isChartGenerated": isChartGenerated, "isQueryText": isQueryText}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
