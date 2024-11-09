@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 
 const Chatbot = () => {
@@ -16,25 +16,21 @@ const Chatbot = () => {
 
   const handleSendMessage = async () => {
     if (message.trim() === '') return;
-    
-    // Display the user's message in the chat history
+
     setChatHistory([...chatHistory, { user: message }]);
     setMessage('');
     setIsLoading(true);
-    setCurrentPage(1);  // Reset to the first page when a new query is sent
+    setCurrentPage(1);
 
     try {
-      // Send the message to the FastAPI chatbot endpoint
       const response = await axios.post('http://localhost:8001/chat', { message });
       const { response: assistantResponse, intent, isChartGenerated } = response.data;
 
-      // Display the assistant's reply
       setChatHistory((prevHistory) => [
         ...prevHistory,
         { assistant: assistantResponse },
       ]);
 
-      // Handle dataframe or text query
       if (isChartGenerated === 'yes') {
         const dataframeResponse = await axios.post('http://localhost:8000/query/dataframe', {
           query: intent,
@@ -119,6 +115,14 @@ const Chatbot = () => {
     }
   };
 
+  // Automatically add a 'hi' message on page load
+  useEffect(() => {
+    setChatHistory([
+      { assistant: 'Hi! How can I assist you today with fraud detection?' },
+      ...chatHistory,
+    ]);
+  }, []);
+
   return (
     <div style={styles.chatContainer}>
       <div style={styles.chatBox}>
@@ -141,7 +145,7 @@ const Chatbot = () => {
           style={styles.input}
         />
         <button onClick={handleSendMessage} disabled={isLoading} style={styles.sendButton}>
-          Send
+          <span style={styles.arrow}>&#8594;</span>  {/* Arrow symbol */}
         </button>
       </div>
     </div>
@@ -151,118 +155,134 @@ const Chatbot = () => {
 const styles = {
   chatContainer: {
     width: '100%',
-    maxWidth: '800px',  // Increased width of the chat container
+    maxWidth: '800px',  // Adjust max width for better responsiveness
     margin: '0 auto',
     padding: '20px',
-    backgroundColor: '#f9f9f9',
-    borderRadius: '10px',
-    boxShadow: '0 4px 10px rgba(0, 0, 0, 0.1)',
+    backgroundColor: '#fff',
+    borderRadius: '12px',
+    boxShadow: '0 6px 15px rgba(0, 0, 0, 0.1)',
     display: 'flex',
     flexDirection: 'column',
     justifyContent: 'space-between',
-    height: '80vh',  // Keep the container height adjustable
+    height: '80vh',  // Set height for scrollable content
   },
   chatBox: {
     flexGrow: 1,
-    maxHeight: '60vh',  // Limit the chat history height to avoid overflow
+    maxHeight: '60vh',  // Limit chat history height
     overflowY: 'auto',
     marginBottom: '20px',
-    paddingRight: '10px',
+    paddingRight: '15px',
   },
   messageContainer: {
-    marginBottom: '10px',
+    marginBottom: '12px',
   },
   userMessage: {
-    backgroundColor: '#d1e7fd',
-    padding: '10px',
+    backgroundColor: '#e0f7fa',  // Light cyan for user messages
+    padding: '12px',
     borderRadius: '10px',
     textAlign: 'left',
-    wordBreak: 'break-word',  // Avoid text overflow
+    wordBreak: 'break-word',
+    fontSize: '1rem',
   },
   assistantMessage: {
-    backgroundColor: '#e8f4e8',
-    padding: '10px',
+    backgroundColor: '#c8e6c9',  // Soft green for assistant messages
+    padding: '12px',
     borderRadius: '10px',
     textAlign: 'left',
-    wordBreak: 'break-word',  // Avoid text overflow
+    wordBreak: 'break-word',
+    fontSize: '1rem',
   },
   dataframeMessage: {
-    backgroundColor: '#f1f1f1',
-    padding: '10px',
+    backgroundColor: '#f5f5f5',  // Light gray for data table
+    padding: '12px',
     borderRadius: '10px',
-    fontSize: '0.85rem',
-    overflowX: 'auto',  // Allow horizontal scroll for wide tables
+    fontSize: '0.9rem',
+    overflowX: 'auto',  // Allow horizontal scrolling for large tables
+    maxHeight: '400px',
   },
   textMessage: {
-    backgroundColor: '#fff3cd',
-    padding: '10px',
+    backgroundColor: '#ffecb3',  // Light yellow for additional information
+    padding: '12px',
     borderRadius: '10px',
-    fontSize: '0.85rem',
-    wordBreak: 'break-word',  // Avoid text overflow
+    fontSize: '0.9rem',
+    wordBreak: 'break-word',
   },
   errorMessage: {
-    backgroundColor: '#f8d7da',
-    padding: '10px',
+    backgroundColor: '#f8d7da',  // Red for errors
+    padding: '12px',
     borderRadius: '10px',
     color: '#721c24',
-    wordBreak: 'break-word',  // Avoid text overflow
+    fontSize: '1rem',
+    wordBreak: 'break-word',
   },
   inputContainer: {
     display: 'flex',
     alignItems: 'center',
-    marginTop: '10px',
+    marginTop: '12px',
   },
   input: {
-    width: '80%',
-    padding: '10px',
-    marginRight: '10px',
-    borderRadius: '5px',
+    width: '85%',
+    padding: '12px',
+    marginRight: '12px',
+    borderRadius: '8px',
     border: '1px solid #ddd',
     fontSize: '1rem',
+    outline: 'none',
+    boxShadow: '0 4px 8px rgba(0, 0, 0, 0.05)',
   },
   sendButton: {
-    padding: '10px 15px',
-    backgroundColor: '#007bff',
+    padding: '12px 18px',
+    backgroundColor: '#00796b',  // Green color for Send button
     color: '#fff',
     border: 'none',
-    borderRadius: '5px',
+    borderRadius: '8px',
     cursor: 'pointer',
+    fontSize: '1.5rem',
+    transition: 'background-color 0.3s',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  arrow: {
+    fontSize: '1.5rem',
   },
   table: {
     width: '100%',
     borderCollapse: 'collapse',
-    marginTop: '10px',
-    tableLayout: 'auto',  // Automatically adjust column widths
+    marginTop: '16px',
   },
   tableHeader: {
-    backgroundColor: '#f2f2f2',
-    padding: '8px',
+    backgroundColor: '#00796b',
+    padding: '10px',
     textAlign: 'left',
     fontWeight: 'bold',
+    color: '#fff',
   },
   tableCell: {
-    padding: '8px',
+    padding: '10px',
     textAlign: 'left',
     borderBottom: '1px solid #ddd',
-    wordBreak: 'break-word',  // Avoid overflow in table cells
+    wordBreak: 'break-word',
   },
   pagination: {
     display: 'flex',
     justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: '10px',
+    marginTop: '20px',
   },
   paginationButton: {
-    padding: '8px 12px',
-    margin: '0 5px',
-    backgroundColor: '#007bff',
+    padding: '10px 15px',
+    backgroundColor: '#00796b',
     color: '#fff',
     border: 'none',
-    borderRadius: '5px',
+    borderRadius: '8px',
     cursor: 'pointer',
+    fontSize: '1rem',
+    transition: 'background-color 0.3s',
   },
   pageNumber: {
-    margin: '0 10px',
+    alignSelf: 'center',
+    fontSize: '1rem',
+    margin: '0 15px',
   },
 };
 
