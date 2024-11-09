@@ -20,11 +20,25 @@ intent_class = [
     {
       "role": "system",
       "content": """
-        As an expert intent categorizer, analyze the following user input and classify whether it requires table information or general inquiry.
+        As an expert intent categorizer, analyze the following user input and classify whether it requires data-related inquiry or general inquiry.
         The answer should be either 'data-related inquiry' or 'requires general inquiry'.
       """
     }
   ]
+
+query_class = [
+    {
+    "role": "system",
+      "content": """
+        As an expert intent categorizer, analyze the following user input and classify whether it requires reasoning about a particular data or general inquiry.
+        The answer should be either 'reasoning about a particular data' or 'requires general inquiry'. When the user asks question such as 'why', 'how', which, where, and what specifically on a data, 
+        it should go for 'reasoning about a particular data'. Else, it should go for 'requires general inquiry'
+        
+        For example:
+        1) Why is this particular user_id is showing high transactions?
+      """
+    }
+]
 
 table_inquiry = [
     {
