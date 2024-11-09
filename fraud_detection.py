@@ -7,6 +7,7 @@ import json
 from urllib.parse import quote_plus
 from sqlalchemy import create_engine, text
 import google.generativeai as genai
+from mysql_native_func import NATIVE_FUNC_MYSQL
 
 # Initialize FastAPI
 app = FastAPI()
@@ -147,12 +148,17 @@ Requirements:
     2. `is_fraud`: A mandatory boolean column indicating whether the transaction is flagged as fraudulent (1 for fraud, 0 for no fraud)
 - Add the `flag_reason` and `is_fraud` columns, which are not present in any table, and compute their values based on the data.
 - Return only the SQL query without any explanations. Generate a complete SQL query, including the necessary logic for fraud detection based on the parameters listed above. Ensure that the `is_fraud` column is explicitly included as a mandatory part of the query.
+
+SQL native Function
+
+{NATIVE_FUNC_MYSQL}
+
 """
 
     try:
         # Call the Gemini API to generate the query
         model = genai.GenerativeModel("gemini-1.5-flash")
-        response = model.generate_content(prompt)
+        response = model.generate_content(prompt, generation_config=genai.GenerationConfig(temperature=0.0))
         
         # Extract and return the generated SQL query from Gemini
         generated_query = response.text.strip()

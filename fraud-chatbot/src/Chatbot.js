@@ -6,6 +6,10 @@ const Chatbot = () => {
   const [chatHistory, setChatHistory] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
 
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(5);  // Number of items per page
+  const [totalPages, setTotalPages] = useState(1);  // Total number of pages
+
   const handleMessageChange = (e) => {
     setMessage(e.target.value);
   };
@@ -21,7 +25,7 @@ const Chatbot = () => {
     try {
       // Send the message to the FastAPI chatbot endpoint
       const response = await axios.post('http://localhost:8001/chat', { message });
-      const { response: assistantResponse, userIntent, isChartGenerated } = response.data;
+      const { response: assistantResponse, intent, isChartGenerated } = response.data;
 
       // Display the assistant's reply
       setChatHistory((prevHistory) => [
@@ -29,20 +33,77 @@ const Chatbot = () => {
         { assistant: assistantResponse },
       ]);
 
-      console.log(userIntent)
 
       // Call the appropriate query endpoint based on isChartGenerated
       if (isChartGenerated === 'yes') {
         const dataframeResponse = await axios.post('http://localhost:8000/query/dataframe', {
-          query: assistantResponse,
+          query: intent,
         });
-        setChatHistory((prevHistory) => [
-          ...prevHistory,
-          { dataframe: dataframeResponse.data.results },
-        ]);
+
+        if (dataframeResponse.data && Array.isArray(dataframeResponse.data.results.data) && dataframeResponse.data.results.data.length > 0) {
+          // Pagination logic
+          const totalItems = dataframeResponse.data.results.data.length;
+          setTotalPages(Math.ceil(totalItems / itemsPerPage));
+
+          const startIndex = (currentPage - 1) * itemsPerPage;
+          const currentPageData = dataframeResponse.data.results.data.slice(startIndex, startIndex + itemsPerPage);
+
+          // Convert the dataframe response to table format
+          const dataframeTable = (
+            <div>
+              <table style={styles.table}>
+                <thead>
+                  <tr>
+                    {Object.keys(currentPageData[0]).map((key) => (
+                      <th key={key} style={styles.tableHeader}>{key}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {currentPageData.map((row, index) => (
+                    <tr key={index}>
+                      {Object.values(row).map((value, idx) => (
+                        <td key={idx} style={styles.tableCell}>{value}</td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+
+              {/* Pagination Controls */}
+              <div style={styles.pagination}>
+                <button
+                  onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                  disabled={currentPage === 1}
+                  style={styles.paginationButton}
+                >
+                  Previous
+                </button>
+                <span style={styles.pageNumber}>Page {currentPage} of {totalPages}</span>
+                <button
+                  onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                  disabled={currentPage === totalPages}
+                  style={styles.paginationButton}
+                >
+                  Next
+                </button>
+              </div>
+            </div>
+          );
+
+          setChatHistory((prevHistory) => [
+            ...prevHistory,
+            { dataframe: dataframeTable },
+          ]);
+        } else {
+          setChatHistory((prevHistory) => [
+            ...prevHistory,
+            { error: 'No valid data returned from the dataframe query.' },
+          ]);
+        }
       } else {
         const textResponse = await axios.post('http://localhost:8000/query/text', {
-          query: assistantResponse,
+          query: intent,
         });
         setChatHistory((prevHistory) => [
           ...prevHistory,
@@ -67,7 +128,7 @@ const Chatbot = () => {
           <div key={index} style={styles.messageContainer}>
             {entry.user && <div style={styles.userMessage}>{entry.user}</div>}
             {entry.assistant && <div style={styles.assistantMessage}>{entry.assistant}</div>}
-            {entry.dataframe && <div style={styles.dataframeMessage}>Data: {JSON.stringify(entry.dataframe)}</div>}
+            {entry.dataframe && <div style={styles.dataframeMessage}>{entry.dataframe}</div>}
             {entry.text && <div style={styles.textMessage}>{entry.text}</div>}
             {entry.error && <div style={styles.errorMessage}>{entry.error}</div>}
           </div>
@@ -154,6 +215,40 @@ const styles = {
     border: 'none',
     borderRadius: '5px',
     cursor: 'pointer',
+  },
+  table: {
+    width: '100%',
+    borderCollapse: 'collapse',
+    marginTop: '10px',
+  },
+  tableHeader: {
+    backgroundColor: '#f2f2f2',
+    padding: '8px',
+    textAlign: 'left',
+    fontWeight: 'bold',
+  },
+  tableCell: {
+    padding: '8px',
+    textAlign: 'left',
+    borderBottom: '1px solid #ddd',
+  },
+  pagination: {
+    display: 'flex',
+    justifyContent: 'center',
+    marginTop: '10px',
+  },
+  paginationButton: {
+    padding: '8px 12px',
+    margin: '0 5px',
+    backgroundColor: '#007bff',
+    color: '#fff',
+    border: 'none',
+    borderRadius: '5px',
+    cursor: 'pointer',
+  },
+  pageNumber: {
+    alignSelf: 'center',
+    margin: '0 10px',
   },
 };
 
