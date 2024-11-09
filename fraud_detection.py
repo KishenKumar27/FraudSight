@@ -1,188 +1,292 @@
-import datetime
-import json
-import uvicorn
-import random
 from fastapi import FastAPI, HTTPException
-from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from sqlalchemy import create_engine, Column, Integer, String, Float, DateTime, ForeignKey
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker, relationship
-from typing import List
+import pandas as pd
+from typing import Optional, Dict
+import json
+from urllib.parse import quote_plus
+from sqlalchemy import create_engine, text
+import google.generativeai as genai
 
-# Define fraud parameters (mimicking the `fraud_parameters.json`)
-# Load fraud parameters from the JSON file
-def load_fraud_parameters():
-    with open('fraud_parameters.json', 'r') as file:
-        return json.load(file)
-
-fraud_parameters = load_fraud_parameters()
-
-# Database configuration
-DATABASE_URL = "mysql+pymysql://app_user:app_password@localhost:3307/fraud_detection_db"
-engine = create_engine(DATABASE_URL)
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-Base = declarative_base()
-
-# Define Pydantic models to receive user intent and send response
-class UserIntent(BaseModel):
-    user_intent: str
-
-# Define database tables
-class User(Base):
-    __tablename__ = "users"
-    user_id = Column(Integer, primary_key=True, index=True)
-    name = Column(String)
-    email = Column(String)
-    age = Column(Integer)
-    gender = Column(String(10))
-    country_of_residence = Column(String)
-    occupation = Column(String)
-    status = Column(String)
-    income = Column(Float)
-    phone_number = Column(String)
-    account_creation_date = Column(DateTime)
-
-class TradingTransaction(Base):
-    __tablename__ = "trading_transactions"
-    id = Column(Integer, primary_key=True, index=True)
-    transaction_id = Column(String, unique=True, index=True)
-    user_id = Column(Integer, ForeignKey('users.user_id'))
-    transaction_type = Column(String)
-    amount = Column(Float)
-    currency = Column(String)
-    transaction_time = Column(DateTime)
-    location = Column(String)
-    device_id = Column(String)
-    ip_address = Column(String)
-    user = relationship("User", back_populates="transactions")
-
-User.transactions = relationship("TradingTransaction", back_populates="user")
-
-# Initialize FastAPI app
+# Initialize FastAPI
 app = FastAPI()
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],  # Allows your frontend to make requests to the API
-    allow_credentials=True,
-    allow_methods=["*"],  # Allows all methods (GET, POST, etc.)
-    allow_headers=["*"],  # Allows all headers
-)
+# Database configuration
+DB_CONFIG = {
+    "host": "localhost",
+    "user": "app_user",
+    "password": "app_password",
+    "database": "fraud_detection_db",
+    "port": 3307
+}
 
-# Pydantic models for request and response
-class UserIntentRequest(BaseModel):
-    user_intent: str
+# Load fraud parameters from fraud_parameters.json
+with open('fraud_parameters.json', 'r') as f:
+    fraud_parameters = json.load(f)
 
-class TransactionResponse(BaseModel):
-    transaction_id: str
-    user_id: int
-    amount: float
-    transaction_type: str
-    currency: str
-    transaction_time: datetime.datetime
-    location: str
-    device_id: str
-    ip_address: str
-    flagged_parameters: List[str]
-    flag_reason: str
+# Convert fraud parameters into a prompt-friendly format
+fraud_conditions_text = "\n".join([
+    f"Parameter: {param['parameter']}\nDescription: {param['description']}\nExample: {param['example']}\n"
+    for param in fraud_parameters
+])
 
-# Process user_intent and query fraud data
-@app.post("/process_intent", response_model=List[TransactionResponse])
-async def process_intent(intent_request: UserIntentRequest):
-    user_intent = intent_request.user_intent.lower()
-    session = SessionLocal()
+# Google Gemini API Configuration
+genai.configure(api_key="AIzaSyCQf6KtXTkjkLriOYkiQUEjqYVwOlzRT6c")
+
+# Initialize database engine
+def create_db_engine():
+    """Create and return SQLAlchemy engine"""
+    try:
+        connection_url = f"mysql+pymysql://{DB_CONFIG['user']}:{quote_plus(DB_CONFIG['password'])}@{DB_CONFIG['host']}:{DB_CONFIG['port']}/{DB_CONFIG['database']}"
+        engine = create_engine(connection_url)
+        with engine.connect() as connection:
+            connection.execute(text("SELECT 1"))
+        return engine
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Database connection error: {str(e)}")
+
+db_engine = create_db_engine()
+
+# User intent model
+class UserIntent(BaseModel):
+    query: str
+
+def execute_sql_query_with_retry(query: str, max_retries: int = 3) -> pd.DataFrame:
+    """Attempt to execute SQL query with retries and return the result as a DataFrame."""
+    retry_count = 0
+    while retry_count < max_retries:
+        try:
+            # Establish a connection to the database engine
+            with db_engine.connect() as connection:
+                result = connection.execute(text(query))  # Execute the query
+                # Fetch all rows and columns from the result
+                rows = result.fetchall()
+                columns = result.keys()  # Get column names
+                # Convert the result into a DataFrame
+                df = pd.DataFrame(rows, columns=columns)
+                return df  # Return the DataFrame
+        except Exception as e:
+            retry_count += 1
+            if retry_count == max_retries:
+                # If all retries fail, raise an exception
+                raise HTTPException(status_code=500, detail=f"Error executing SQL query after {max_retries} attempts: {str(e)}")
+            print(f"Retrying query execution (attempt {retry_count}): {str(e)}")
+
+def validate_sql_query(query: str) -> bool:
+    """Validate SQL query for security and correctness"""
+    dangerous_keywords = ['drop', 'truncate', 'delete', 'update', 'insert', 'alter', 'create']
+    query_lower = query.lower()
+    for keyword in dangerous_keywords:
+        if keyword in query_lower:
+            return False
+    allowed_tables = ['users', 'trading_transactions']
+    tables_referenced = [word.lower() for word in query_lower.split() if word.lower() in allowed_tables]
+    if not tables_referenced:
+        return False
+    return True
+
+# Generate SQL query using Gemini model
+def generate_sql_query(user_intent: str) -> str:
+    """Generate SQL query based on user intent using fraud parameters"""
+
+    # Define the prompt that includes the fraud parameters and user intent
+    prompt = f"""
+You are a SQL expert. Based on the following fraud parameters, generate a SQL query that detects fraud based on user intent:
+
+Given these database tables and their schemas:
+    
+1. `users` Table:
+    - user_id (Primary Key)
+    - name
+    - email
+    - Age
+    - Gender
+    - Country_of_residence
+    - Occupation
+    - Status
+    - Income
+    - Phone_Number
+    - Account_Creation_Date
+
+2. `trading_transactions` Table:
+    - id (Primary Key)
+    - transaction_id (Unique)
+    - user_id (Foreign Key referencing User.user_id)
+    - transaction_type
+    - amount
+    - currency
+    - transaction_time
+    - location
+    - device_id
+    - ip_address
+
+Fraud Parameters:
+{fraud_conditions_text}
+
+The user intent is: "{user_intent}"
+
+Requirements:
+- Use only SELECT statements (no INSERT, UPDATE, DELETE, etc.)
+- Include proper JOIN conditions when combining tables (e.g., JOIN users and trading_transactions)
+- Use appropriate WHERE clauses for filtering, including fraud detection based on the parameters provided
+- Ensure correct date manipulation using NOW() or DATE_SUB() (e.g., t.transaction_time >= DATE_SUB(NOW(), INTERVAL 24 HOUR))
+- Use standard SQL functions for date formatting (e.g., DATE_FORMAT for date-time fields)
+- Include clear column aliases for readability
+- Optimize for performance with appropriate indexing columns
+- Handle NULL values appropriately
+- Include two new columns in the generated SQL query:
+    1. `flag_reason`: A string column explaining why the transaction is flagged (based on the fraud parameters)
+    2. `is_fraud`: A mandatory boolean column indicating whether the transaction is flagged as fraudulent (1 for fraud, 0 for no fraud)
+- Return only the SQL query without any explanations. Generate a complete SQL query, including the necessary logic for fraud detection based on the parameters listed above. Ensure that the `is_fraud` column is explicitly included as a mandatory part of the query.
+"""
 
     try:
-        # Determine query based on intent
-        if "high risk" in user_intent:
-            query = session.query(TradingTransaction).filter(TradingTransaction.amount > 10000)
-        elif "unusual location" in user_intent:
-            query = session.query(TradingTransaction).filter(TradingTransaction.location != "User's Usual Location")
-        elif "suspicious frequency" in user_intent:
-            query = session.query(TradingTransaction).filter(TradingTransaction.transaction_time > datetime.datetime.now() - datetime.timedelta(minutes=1))
-        else:
-            query = session.query(TradingTransaction)  # default query for general intent
-
-        transactions = query.all()
-
-        # Format results with flagged parameters
-        results = []
-        for txn in transactions:
-            flagged_params = []
-            flag_reason = ""
-
-            # Add flagging logic based on fraud parameters
-            if txn.amount > 10000:
-                flagged_params.append(fraud_parameters[0]['parameter'])
-                flag_reason += "Amount exceeds threshold. "
-            if txn.location != "User's Usual Location":
-                flagged_params.append(fraud_parameters[2]['parameter'])
-                flag_reason += "Unusual location. "
-            if txn.transaction_time.hour < 6 or txn.transaction_time.hour > 20:
-                flagged_params.append(fraud_parameters[5]['parameter'])
-                flag_reason += "Transaction during unusual hours. "
-
-            results.append({
-                "transaction_id": txn.transaction_id,
-                "user_id": txn.user_id,
-                "amount": txn.amount,
-                "transaction_type": txn.transaction_type,
-                "currency": txn.currency,
-                "transaction_time": txn.transaction_time,
-                "location": txn.location,
-                "device_id": txn.device_id,
-                "ip_address": txn.ip_address,
-                "flagged_parameters": flagged_params,
-                "flag_reason": flag_reason.strip()
-            })
+        # Call the Gemini API to generate the query
+        model = genai.GenerativeModel("gemini-1.5-flash")
+        response = model.generate_content(prompt)
         
-        return results
+        # Extract and return the generated SQL query from Gemini
+        generated_query = response.text.strip()
+        generated_query = generated_query.replace("```sql", "").replace("```", "")
 
+        # Optionally, you could validate the generated query before returning
+        if not validate_sql_query(generated_query):
+            raise ValueError("Generated query failed validation")
+        
+        return generated_query
+    
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error generating SQL query with Gemini: {str(e)}")
+
+def fix_sql_query_with_gemini(query: str) -> str:
+    """Fix or optimize the MySQL SQL query using Gemini"""
+    prompt = f"""
+    The following is an SQL query that needs to be fixed or optimized:
+
+    {query}
+
+    Please:
+    - Fix any syntax errors.
+    - Optimize the query for performance if possible.
+    - Ensure the query is safe and does not contain any dangerous operations (e.g., DROP, DELETE).
+    - Return the corrected and optimized SQL query.
+
+    Provide only the fixed query, without explanations.
+    """
+
+    try:
+        # Send query to Gemini for fixing
+        model = genai.GenerativeModel("gemini-1.5-flash")
+        response = model.generate_content(prompt)
+        fixed_query = response.text.strip()
+
+        return fixed_query
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fixing SQL query with Gemini: {str(e)}")
+
+def format_dataframe_response(df: pd.DataFrame) -> Dict:
+    """Format DataFrame response with additional metadata"""
+    return {
+        "row_count": len(df),
+        "columns": list(df.columns),
+        "data": json.loads(df.to_json(orient="records", date_format="iso"))
+    }
+
+@app.post("/query/dataframe")
+async def get_dataframe_response(user_intent: UserIntent):
+    """Endpoint to return query results as a structured DataFrame"""
+    try:
+        sql_query = generate_sql_query(user_intent.query)
+        
+        # Try executing the query first
+        try:
+            df = execute_sql_query_with_retry(sql_query)
+        except Exception:
+            # If execution fails, attempt to fix the query
+            fixed_sql_query = fix_sql_query_with_gemini(sql_query)
+            df = execute_sql_query_with_retry(fixed_sql_query)
+            sql_query = fixed_sql_query  # Update original query to the fixed one
+        
+        response = format_dataframe_response(df)
+        
+        return {
+            "sql_query": sql_query,
+            "results": response
+        }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-    finally:
-        session.close()
 
-# Function to simulate fraud detection (you can replace this with more sophisticated logic)
-def detect_fraud(transaction: dict) -> bool:
-    # Simple rule: Randomly flag a transaction as fraud for this example
-    return random.choice([True, False])
+def convert_df_to_response_text_with_gemini(user_intent: str, df: pd.DataFrame) -> str:
+    """
+    Use Gemini to convert DataFrame results into a paragraph that answers the user intent.
+    
+    Args:
+        user_intent (str): The user's query or intent.
+        df (pd.DataFrame): The DataFrame containing query results.
 
-# Route to get fraud data based on user intent
-@app.post("/get_fraud_data")
-async def get_fraud_data(intent: UserIntent):
-    user_intent = intent.user_intent.lower()
-    
-    # If the intent contains specific fraud-related keywords, return the fraud parameters table
-    if "fraud parameters" in user_intent:
-        return {"table": fraud_parameters}
-    
-    # If the intent is more specific or requires an analysis, return a basic analysis (for now)
-    if "analyze" in user_intent or "check" in user_intent:
-        # For simplicity, simulate a sample transaction for analysis
-        sample_transaction = {
-            "transaction_id": "T12345",
-            "amount": 15000,
-            "currency": "USD",
-            "location": "US",
-            "device_id": "device_5678",
-            "ip_address": "192.168.1.1"
-        }
+    Returns:
+        str: A descriptive text paragraph that answers the user's intent based on the DataFrame data.
+    """
+    # Convert DataFrame to JSON for input to Gemini
+    data_json = df.to_json(orient="records", date_format="iso")
+
+    # Prepare the prompt
+    prompt = f"""
+Given the following data as JSON and a user intent, generate a paragraph response that answers the intent in a clear and descriptive manner. 
+
+Data (in JSON format):
+{data_json}
+
+User Intent:
+"{user_intent}"
+
+Requirements:
+- Use the data to directly address the user's intent.
+- Provide a coherent and concise summary in paragraph form.
+- Avoid technical jargon unless necessary.
+- If any data suggests fraud or unusual patterns, mention them in context.
+
+Generate only the paragraph response text.
+"""
+
+    try:
+        # Use Gemini to generate the response text
+        model = genai.GenerativeModel("gemini-1.5-flash")
+        response = model.generate_content(prompt)
         
-        # Perform fraud detection analysis
-        is_fraud = detect_fraud(sample_transaction)
+        # Extract and return the response text from Gemini
+        response_text = response.text.strip()
+        return response_text
+    
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error generating response with Gemini: {str(e)}")
+
+# Example endpoint using the Gemini-based conversion function
+@app.post("/query/text")
+async def get_text_response(user_intent: UserIntent):
+    """Endpoint to return a Gemini-generated paragraph response to answer user intent"""
+    try:
+        sql_query = generate_sql_query(user_intent.query)
         
-        # Return a basic fraud analysis with 'is_fraud' field
+        # Execute the query with retry mechanism
+        try:
+            df = execute_sql_query_with_retry(sql_query)
+        except HTTPException:
+            # If execution fails after retries, attempt to fix the query
+            fixed_sql_query = fix_sql_query_with_gemini(sql_query)
+            df = execute_sql_query_with_retry(fixed_sql_query)
+            sql_query = fixed_sql_query  # Update original query to the fixed one
+        
+        # Generate a Gemini-based paragraph response based on user intent and DataFrame content
+        response_text = convert_df_to_response_text_with_gemini(user_intent.query, df)
+        
         return {
-            "answer": f"Analyzing the transaction with ID {sample_transaction['transaction_id']}...",
-            "is_fraud": is_fraud,
-            "transaction_details": sample_transaction
+            "sql_query": sql_query,
+            "response": response_text,
+            "record_count": len(df)
         }
-    
-    # Default response if no specific action is found
-    return {"answer": "Sorry, I couldn't understand your request. Please try again with something related to fraud detection."}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
-# Add Uvicorn server start at the end
 if __name__ == "__main__":
+    import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
