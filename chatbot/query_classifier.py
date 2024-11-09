@@ -26,7 +26,7 @@ def query_classifier(user_input):
     
     query_class_vec = get_embedding(query_class)
     table_info_vec = get_embedding('reasoning about a particular data')
-    req_general_inquiry = get_embedding('requires general inquiry')
+    req_general_inquiry = get_embedding('data-related inquiry or does not fit the criteria or general inquiry')
     
         
     # Compute cosine similarities
@@ -38,7 +38,7 @@ def query_classifier(user_input):
         nearest_vector = "reasoning about a particular data"
         highest_similarity = similarity_query_info
     else:
-        nearest_vector = "req_general_inquiry"
+        nearest_vector = "data-related inquiry"
         highest_similarity = similarity_general_inquiry
                 
     if nearest_vector == "reasoning about a particular data":
