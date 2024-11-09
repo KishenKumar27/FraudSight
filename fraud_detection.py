@@ -1,4 +1,5 @@
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import pandas as pd
 from typing import Optional, Dict
@@ -9,6 +10,14 @@ import google.generativeai as genai
 
 # Initialize FastAPI
 app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Allows your frontend to make requests to the API
+    allow_credentials=True,
+    allow_methods=["*"],  # Allows all methods (GET, POST, etc.)
+    allow_headers=["*"],  # Allows all headers
+)
 
 # Database configuration
 DB_CONFIG = {
@@ -136,6 +145,7 @@ Requirements:
 - Include two new computed columns in the generated SQL query:
     1. `flag_reason`: A string column explaining why the transaction is flagged (based on the fraud parameters)
     2. `is_fraud`: A mandatory boolean column indicating whether the transaction is flagged as fraudulent (1 for fraud, 0 for no fraud)
+- Add the `flag_reason` and `is_fraud` columns, which are not present in any table, and compute their values based on the data.
 - Return only the SQL query without any explanations. Generate a complete SQL query, including the necessary logic for fraud detection based on the parameters listed above. Ensure that the `is_fraud` column is explicitly included as a mandatory part of the query.
 """
 

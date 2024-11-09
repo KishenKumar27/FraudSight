@@ -66,7 +66,7 @@ session = Session()
 fake = Faker()
 
 # Function to generate dummy users and transactions with varied hours for today's date
-def generate_dummy_data(num_users=1000, transactions_per_user=500):
+def generate_dummy_data(num_users=10000, transactions_per_user=5):
     users = []
     generated_emails = set()  # Track generated emails to avoid duplicates
 
