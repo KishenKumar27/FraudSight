@@ -12,7 +12,7 @@ Keep the output as concise as possible.
 
 intent_gen = [
 {"role": "system", "content": """
-         As an expert intent classifier, analyze the following user input and extract the primary user intent. Pay particular attention to:
+         As an expert intent classifier, analyze the following user input and extract the primary user intent.
 """}
 ]
 
@@ -22,6 +22,9 @@ intent_class = [
       "content": """
         As an expert intent categorizer, analyze the following user input and classify whether it requires data-related inquiry or general inquiry.
         The answer should be either 'data-related inquiry' or 'requires general inquiry'.
+        
+        Example: show the anomalies
+        Answer: data-related inquiry
       """
     }
   ]
@@ -61,6 +64,7 @@ table_inquiry = [
             - Make assumptions about data structure without user input
             - Ask for additional parameters or filters
             - Request clarification about data requirements
+            - Prompt the user to provide more details or information
         """
     }
 ]
