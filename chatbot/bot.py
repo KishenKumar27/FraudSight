@@ -51,6 +51,10 @@ async def chat(request: ChatRequest):
         
         isQueryText = query_classifier(request.message)
         print(isQueryText)
+        
+        if isQueryText == "yes":
+            isChartGenerated = "no"
+
                     
         if isChartGenerated == "no":
             # Create the chat conversation
