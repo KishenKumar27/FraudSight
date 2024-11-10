@@ -19,7 +19,8 @@ def query_classifier(user_input):
     query_class = client.chat.completions.create(
             model="gpt-3.5-turbo",  # You can use gpt-4 if you have access
             messages=prompts.query_class,
-            max_tokens=500
+            max_tokens=500,
+            temperature=0.0,
     ).choices[0].message.content
     
     print(query_class)

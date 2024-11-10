@@ -67,7 +67,7 @@ async def chat(request: ChatRequest):
             # Make the request to OpenAI's chat API
             response = client.chat.completions.create(
                 model="gpt-3.5-turbo",  # You can use gpt-4 if you have access
-                messages=general_inquiry
+                messages=general_inquiry,
             )
                     
             # Extract and return the assistant's reply
@@ -81,7 +81,7 @@ async def chat(request: ChatRequest):
             # Make the request to OpenAI's chat API
             response = client.chat.completions.create(
                 model="gpt-3.5-turbo",  # You can use gpt-4 if you have access
-                messages=table_inquiry
+                messages=table_inquiry,
             )
                     
             # Extract and return the assistant's reply

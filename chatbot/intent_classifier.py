@@ -19,7 +19,8 @@ def intent_classifier(user_input):
     intent_class = client.chat.completions.create(
             model="gpt-3.5-turbo",  # You can use gpt-4 if you have access
             messages=prompts.intent_class,
-            max_tokens=500
+            max_tokens=500,
+            temperature=0.0,
     ).choices[0].message.content
     
     print(intent_class)

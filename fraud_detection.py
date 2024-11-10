@@ -194,7 +194,7 @@ Provide only the fixed query, without explanations.
     try:
         # Send query to Gemini for fixing
         model = genai.GenerativeModel("gemini-1.5-flash")
-        response = model.generate_content(prompt)
+        response = model.generate_content(prompt, generation_config=genai.GenerationConfig(temperature=0.0))
         fixed_query = response.text.strip()
 
         return fixed_query
@@ -269,7 +269,7 @@ Generate only the paragraph response text.
     try:
         # Use Gemini to generate the response text
         model = genai.GenerativeModel("gemini-1.5-flash")
-        response = model.generate_content(prompt)
+        response = model.generate_content(prompt, generation_config=genai.GenerationConfig(temperature=0.0))
         
         # Extract and return the response text from Gemini
         response_text = response.text.strip()
