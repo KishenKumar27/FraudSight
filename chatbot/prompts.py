@@ -54,6 +54,7 @@ intent_class = [{
        - what led to
        - how does X affect Y
        - what's the relationship between
+   
 
     IMPORTANT RULES:
     - If the input starts with ANY data action verb (show, display, get, etc.), ALWAYS classify as 'data-related inquiry'
@@ -71,12 +72,16 @@ intent_class = [{
     - "list all accounts"
     - "find suspicious users"
     - "give me the data"
+    - "Show today's fraud transaction"
 
     Must be classified as general inquiry:
     - "why are these transactions suspicious?"
     - "what caused this anomaly?"
     - "explain why user 123 is flagged"
     - "how come this pattern exists?"
+    - "What can you do?"
+    - "What are the trading fraud terms?"
+
     
     When in doubt:
     - If the query starts with a data action verb → ALWAYS data-related inquiry
@@ -139,15 +144,19 @@ query_class = [
     - "What is the average transaction amount?"
     - "Where are the most transactions occurring?"
     - "How much revenue was generated yesterday?"
+    - "Which is the flag reason for highest fraud?"
 
     Must be classified as 'data-related inquiry':
     - "show the highest fraud transactions"
+    - "Show today's fraud transaction"
     
     Must be classified as 'general inquiry':
     - "Who are you"
     - What can you do"
     - "Hi"
     -"Who is the president of America"
+    -"What are the trading fraud terms?"
+
 
 
 
