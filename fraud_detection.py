@@ -149,6 +149,7 @@ Requirements:
 - Add the `flag_reason` and `is_fraud` columns, which are not present in any table, and compute their values based on the data.
 - Return only the SQL query without any explanations. Generate a complete SQL query, including the necessary logic for fraud detection based on the parameters listed above. Ensure that the `is_fraud` column is explicitly included as a mandatory part of the query.
 - Only include the columns specified in the given database tables and their schemas.
+- Ensure the `flag_reason` and `is_fraud` are not causing error `Unknown column 'flag_reason' in 'IN/ALL/ANY subquery'` in the SQL query.
 
 SQL native Function
 
@@ -177,18 +178,18 @@ SQL native Function
 def fix_sql_query_with_gemini(query: str) -> str:
     """Fix or optimize the MySQL SQL query using Gemini"""
     prompt = f"""
-    The following is an SQL query that needs to be fixed or optimized:
+The following is an SQL query that needs to be fixed or optimized:
 
-    {query}
+{query}
 
-    Please:
-    - Fix any syntax errors.
-    - Optimize the query for performance if possible.
-    - Ensure the query is safe and does not contain any dangerous operations (e.g., DROP, DELETE).
-    - Return the corrected and optimized SQL query.
+Please:
+- Fix any syntax errors.
+- Optimize the query for performance if possible.
+- Ensure the query is safe and does not contain any dangerous operations (e.g., DROP, DELETE).
+- Return the corrected and optimized SQL query.
 
-    Provide only the fixed query, without explanations.
-    """
+Provide only the fixed query, without explanations.
+"""
 
     try:
         # Send query to Gemini for fixing
