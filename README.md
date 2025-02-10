@@ -76,8 +76,10 @@ cd chatbot
 python3 bot.py
 ```
 
-6. To start the application, run:
+6. To start the front-end React application, run:
 ```zsh
+cd fraud-chatbot/
+npm install
 npm start
 ```
 
