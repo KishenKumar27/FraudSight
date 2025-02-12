@@ -1,15 +1,21 @@
-from openai import OpenAI
+from together import Together
+from sentence_transformers import SentenceTransformer
 import os
 import prompts
 from sklearn.metrics.pairwise import cosine_similarity
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # Initialize OpenAI client
-client = OpenAI(api_key="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")
+client = Together(api_key=os.getenv('API_KEY'))
+emb_model = SentenceTransformer("nomic-ai/nomic-embed-text-v1", trust_remote_code=True)
 
-def get_embedding(text, model="text-embedding-3-small"):
+def get_embedding(text, model=emb_model):
    text = text.replace("\n", " ")
-   return client.embeddings.create(input = [text], model=model).data[0].embedding
-
+   sentences = [f'search_query: {text}']
+   embeddings = model.encode(sentences)
+   return embeddings[0]
 
 def query_classifier(user_input):
     query_classifier = prompts.query_class
@@ -17,7 +23,7 @@ def query_classifier(user_input):
     query_classifier.append({"role": "user", "content": user_input})
     
     query_class = client.chat.completions.create(
-            model="gpt-3.5-turbo",  # You can use gpt-4 if you have access
+            model="deepseek-ai/DeepSeek-V3",  # You can use gpt-4 if you have access
             messages=prompts.query_class,
             max_tokens=500,
             temperature=0.0,

@@ -2,14 +2,17 @@ import uvicorn
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from openai import OpenAI
+from together import Together
 import os
 import prompts
 from intent_classifier import intent_classifier
 from query_classifier import query_classifier
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # Initialize OpenAI client
-client = OpenAI(api_key="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")
+client = Together(api_key=os.getenv('API_KEY'))
 
 # Initialize FastAPI app
 app = FastAPI()
@@ -28,7 +31,7 @@ def intent_generator(user_input):
     intent_clarifier.append({"role": "user", "content": user_input})
     
     intent = client.chat.completions.create(
-            model="gpt-3.5-turbo",  # You can use gpt-4 if you have access
+            model="deepseek-ai/DeepSeek-V3",  # You can use gpt-4 if you have access
             messages=prompts.intent_gen,
             max_tokens=500
     ).choices[0].message.content
@@ -45,7 +48,6 @@ class ChatRequest(BaseModel):
 async def chat(request: ChatRequest):
     try:
         intent = intent_generator(request.message)
-        
         isChartGenerated = intent_classifier(request.message)
         print(isChartGenerated)
         
@@ -66,7 +68,7 @@ async def chat(request: ChatRequest):
 
             # Make the request to OpenAI's chat API
             response = client.chat.completions.create(
-                model="gpt-3.5-turbo",  # You can use gpt-4 if you have access
+                model="deepseek-ai/DeepSeek-V3",  # You can use gpt-4 if you have access
                 messages=general_inquiry,
             )
                     
@@ -80,7 +82,7 @@ async def chat(request: ChatRequest):
             
             # Make the request to OpenAI's chat API
             response = client.chat.completions.create(
-                model="gpt-3.5-turbo",  # You can use gpt-4 if you have access
+                model="deepseek-ai/DeepSeek-V3",  # You can use gpt-4 if you have access
                 messages=table_inquiry,
             )
                     
