@@ -53,7 +53,7 @@ npm install
 1. Run the MySQL Container
 In the directory where you saved your docker-compose.yml file, run:
 ```zsh
-docker-compose up -d
+docker compose up -d
 ```
 2. Migrate the data into the MySQL Container
 ```zsh
